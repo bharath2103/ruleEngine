@@ -8,7 +8,6 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.smi.drools.dao.RuleBuilderRepository;
 import com.smi.drools.dao.RuleConfigRepository;
 import com.smi.drools.dto.StatusDTO;
 import com.smi.drools.entity.ActionBuilder;
@@ -16,8 +15,11 @@ import com.smi.drools.entity.ConditionBuilder;
 import com.smi.drools.entity.Rule;
 import com.smi.drools.entity.RuleBuilder;
 import com.smi.drools.entity.RuleConfig;
+import com.smi.drools.exception.RuleException;
+import com.smi.drools.service.IRuleBuilderService;
 import com.smi.drools.service.IRuleConfigService;
 import com.smi.drools.util.DroolsRulesService;
+import com.smi.drools.util.ErrorConstants;
 import com.smi.drools.util.RuleConfigUtil;
 
 @Service
@@ -30,8 +32,7 @@ public class RuleConfigServiceImpl implements IRuleConfigService {
 	private DroolsRulesService reloadDroolsRulesService;
 
 	@Autowired
-	private RuleBuilderRepository ruleBuilderRepository;
-
+	private IRuleBuilderService ruleBuilderService;
 	/*
 	 * @Autowired private RuleRepository ruleRepository;
 	 * 
@@ -43,7 +44,7 @@ public class RuleConfigServiceImpl implements IRuleConfigService {
 	 */
 
 	@Override
-	public RuleConfig save(RuleConfig ruleConfig) throws Exception {
+	public RuleConfig save(RuleConfig ruleConfig) throws RuleException {
 
 		String ruleStr = RuleConfigUtil.buildRule(ruleConfig);
 		String oldRule = "";
@@ -63,21 +64,21 @@ public class RuleConfigServiceImpl implements IRuleConfigService {
 			for (RuleBuilder ruleBuilder : ruleBuilders) {
 				String oldGroupName = "";
 				String oldRuleName = "";
-				oldRuleName = ruleBuilderRepository.getRuleNameById(ruleBuilder.getId());
 				if (ruleBuilder.getId() != null) {
-					oldGroupName = ruleBuilderRepository.getRuleGroupNameById(ruleBuilder.getId());
+					oldRuleName = getRuleNameById(ruleBuilder);
+					oldGroupName = getGroupNameById(ruleBuilder);
 				}
 
 				if ((ruleBuilder.getId() != null && !oldRuleName.equals(ruleBuilder.getRuleName())
 						&& checkRuleNameAlreadyExists(ruleBuilder))
 						|| (ruleBuilder.getId() == null && checkRuleNameAlreadyExists(ruleBuilder))) {
-					throw new Exception("Duplicate Rule Name");
+					throw new RuleException(ErrorConstants.RULENAME_ALREADY_EXISTS);
 				}
 
 				if ((ruleBuilder.getId() != null && !oldGroupName.equals(ruleBuilder.getRuleGroupName())
 						&& checkGroupNameAlreadyExists(ruleBuilder))
 						|| (ruleBuilder.getId() == null && checkGroupNameAlreadyExists(ruleBuilder))) {
-					throw new Exception("Duplicate Group Name");
+					throw new RuleException(ErrorConstants.GROUPNAME_ALREADY_EXISTS);
 				}
 				ruleBuilder.setRuleConfig(ruleConfig);
 				// Condition Builder
@@ -95,16 +96,58 @@ public class RuleConfigServiceImpl implements IRuleConfigService {
 
 		// check whether the NAME unique field of the RULECONFIG Entity is duplicate or
 		// not
-		if (checkRuleConfigNameAlreadyExists(ruleConfig)) {
-			throw new Exception("Duplicate RuleConfig name");
+		
+		String oldRuleConfigName = "";
+		if (ruleConfig.getId() != null) {
+			oldRuleConfigName = getRuleConfigNameById(ruleConfig);
+		}
+		
+		if ((ruleConfig.getId() != null && !oldRuleConfigName.equals(ruleConfig.getName())
+				&& checkRuleConfigNameAlreadyExists(ruleConfig))
+				|| (ruleConfig.getId() == null && checkRuleConfigNameAlreadyExists(ruleConfig))) {
+			throw new RuleException(ErrorConstants.RULECONFIGNAME_ALREADY_EXISTS);
 		}
 
 		if (!StringUtils.isEmpty(oldRule)) {
 			this.reloadDroolsRulesService.removeRule(ruleConfig.getId());
 		}
-		ruleConfigRepository.save(ruleConfig);
+		try {
+			ruleConfigRepository.save(ruleConfig);
+		} catch (Exception e) {
+			throw new RuleException(ErrorConstants.UNABLE_TO_SAVE, e.getCause());
+		}
 		this.reloadDroolsRulesService.addRule(rule);
 		return ruleConfig;
+	}
+
+	private String getRuleConfigNameById(RuleConfig ruleConfig) throws RuleException {
+		String oldRuleConfigName = "";
+		try {
+			oldRuleConfigName = ruleConfigRepository.getRuleConfigNameById(ruleConfig.getId());
+		} catch (Exception e) {
+			throw new RuleException(ErrorConstants.DB_CONNECTION_UNAVAILABLE, e.getCause());
+		}
+		return oldRuleConfigName;
+	}
+
+	private String getGroupNameById(RuleBuilder ruleBuilder) throws RuleException {
+		String oldGroupName = "";
+		try {
+			oldGroupName = ruleBuilderService.getRuleGroupNameById(ruleBuilder.getId());
+		} catch (Exception e) {
+			throw new RuleException(ErrorConstants.DB_CONNECTION_UNAVAILABLE, e.getCause());
+		}
+		return oldGroupName;
+	}
+
+	private String getRuleNameById(RuleBuilder ruleBuilder) throws RuleException {
+		String oldRuleName = "";
+		try {
+			oldRuleName = ruleBuilderService.getRuleNameById(ruleBuilder.getId());
+		} catch (Exception e) {
+			throw new RuleException(ErrorConstants.DB_CONNECTION_UNAVAILABLE, e.getCause());
+		}
+		return oldRuleName;
 	}
 
 	private boolean checkRuleConfigNameAlreadyExists(RuleConfig ruleConfig) {
@@ -112,11 +155,11 @@ public class RuleConfigServiceImpl implements IRuleConfigService {
 	}
 
 	private boolean checkRuleNameAlreadyExists(RuleBuilder ruleBuilder) {
-		return ruleBuilderRepository.getCountByRuleName(ruleBuilder.getRuleName()) > 0;
+		return ruleBuilderService.getCountByRuleName(ruleBuilder.getRuleName()) > 0;
 	}
 
 	private boolean checkGroupNameAlreadyExists(RuleBuilder ruleBuilder) {
-		return ruleBuilderRepository.getCountByRuleGroupName(ruleBuilder.getRuleGroupName()) > 0;
+		return ruleBuilderService.getCountByRuleGroupName(ruleBuilder.getRuleGroupName()) > 0;
 	}
 
 	private List<ActionBuilder> buildActions(RuleBuilder ruleBuilder, List<ActionBuilder> actionBuilders) {

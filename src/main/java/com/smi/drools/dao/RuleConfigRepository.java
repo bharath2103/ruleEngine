@@ -15,4 +15,7 @@ public interface RuleConfigRepository extends JpaRepository<RuleConfig, Long> {
 	@Query("SELECT count(*) from RuleConfig rc where rc.name=:name")
 	public Long getCountByName(@Param("name") String name);
 
+	@Query("SELECT name from RuleConfig rc where rc.id=:id")
+	String getRuleConfigNameById(@Param("id") Long id);
+
 }

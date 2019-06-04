@@ -1,11 +1,13 @@
 package com.smi.drools.exception;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 
+import org.hibernate.exception.SQLGrammarException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,4 +42,23 @@ public class CustomRestExceptionHandler extends ResponseEntityExceptionHandler {
 		ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), error);
 		return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
 	}
+	
+	@ExceptionHandler({ InvocationTargetException.class , SQLGrammarException.class})
+	public ResponseEntity<Object> handleDatabaseUnavailability(InvocationTargetException ex,
+			WebRequest request) {
+		String error = "Database connection unavailable";
+
+		ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), error);
+		return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
+	}
+	
+	@ExceptionHandler({ RuleException.class})
+	public ResponseEntity<Object> sampleExceptionCheck(RuleException ex,
+			WebRequest request) {
+		String error = ex.getCause().toString();
+
+		ApiError apiError = new ApiError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), error);
+		return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
+	}
+
 }

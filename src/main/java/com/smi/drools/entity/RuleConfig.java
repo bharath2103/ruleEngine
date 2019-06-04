@@ -72,7 +72,7 @@ public class RuleConfig implements Serializable {
 	@Column(name = "enable")
 	private boolean enable;
 
-	public static void main(String[] args) {
+	/*public static void main(String[] args) {
 		RuleConfig ruleConfig = new RuleConfig();
 		ruleConfig.setName("Invoice Enricher");
 		ruleConfig.setRuleDescription("This rule is to enrich invoice number if it is empty");
@@ -111,10 +111,10 @@ public class RuleConfig implements Serializable {
 		actionBuilder.setRuleBuilder(ruleBuilder);
 		actionBuilders.add(actionBuilder);
 
-		/*ActionBuilder actionBuilder1 = new ActionBuilder();
+		ActionBuilder actionBuilder1 = new ActionBuilder();
 		actionBuilder1.setEnrichement(EnrichmentEnum.NUMBERENRICHMENT);
 		actionBuilder1.setEnrichmentAction("roundOffAmount");
-		actionBuilders.add(actionBuilder1);*/
+		actionBuilders.add(actionBuilder1);
 
 		ruleBuilder.setActionBuilders(actionBuilders);
 		ruleBuilder.setRuleConfig(ruleConfig);
@@ -128,7 +128,7 @@ public class RuleConfig implements Serializable {
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
-	}
+	}*/
 
 	@Override
 	public boolean equals(Object obj) {

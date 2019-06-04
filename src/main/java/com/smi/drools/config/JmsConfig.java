@@ -20,7 +20,7 @@ public class JmsConfig {
 	
 	@Bean
 	public ConnectionFactory connectionFactory() {
-		return new ActiveMQConnectionFactory();
+		return new ActiveMQConnectionFactory("stomp://localhost:61613");
 	}
 
 	@Bean
@@ -33,8 +33,7 @@ public class JmsConfig {
 	@Bean
 	public JmsComponent jmsComponent(final ConnectionFactory connectionFactory,
 			final JmsTransactionManager jmsTransactionManager) {
-		JmsComponent jmsComponent = JmsComponent.jmsComponentTransacted(connectionFactory, jmsTransactionManager);
-		return jmsComponent;
+		return JmsComponent.jmsComponentTransacted(connectionFactory, jmsTransactionManager);
 	}
 	
 }
